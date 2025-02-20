@@ -8,4 +8,7 @@ dependencies:
   - dash
   - numpy
   - pandas
+  - astroquery
+  - astropy
+  - dash-bootstrap-components
 prefix: .\.env
