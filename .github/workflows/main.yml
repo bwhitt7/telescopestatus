@@ -12,4 +12,3 @@ jobs:
           pypi_token: ${{ secrets.TEST_PYPI_TOKEN }}
           repository_name: testpypi
           repository_url: https://test.pypi.org/legacy/
-          poetry_publish_options: --dry-run
