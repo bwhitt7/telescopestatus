@@ -1,0 +1,29 @@
+[project]
+name = "telescopestatus"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Britney Whittington",email = "britneywhittington@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "astroquery (>=0.4.9.post1,<0.5.0)",
+    "matplotlib (>=3.10.0,<4.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "numpy (>=2.2.3,<3.0.0)",
+    "astropy (>=7.0.1,<8.0.0)",
+    "plotly (>=6.0.0,<7.0.0)"
+]
+packages = [{ include = "telescopestatus" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+jupyterlab = "^4.3.5"
+

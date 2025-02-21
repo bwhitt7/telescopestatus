@@ -1,2 +1,0 @@
-from data_fetching import telescope
-from graphs import pie_instruments
