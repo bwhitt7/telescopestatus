@@ -1,0 +1,15 @@
+name: Python package
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build and publish to pypi
+        uses: JRubics/poetry-publish@v2.1
+        with:
+          pypi_token: ${{ secrets.TEST_PYPI_TOKEN }}
+          repository_name: testpypi
+          repository_url: https://test.pypi.org/legacy/
+          poetry_publish_options: --dry-run
