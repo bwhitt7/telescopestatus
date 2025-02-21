@@ -1,6 +1,6 @@
 [project]
 name = "telescopestatus"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = [
     {name = "Britney Whittington",email = "britneywhittington@gmail.com"}
@@ -9,7 +9,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "astroquery (>=0.4.9.post1,<0.5.0)",
-    "matplotlib (>=3.10.0,<4.0.0)",
     "pandas (>=2.2.3,<3.0.0)",
     "numpy (>=2.2.3,<3.0.0)",
     "astropy (>=7.0.1,<8.0.0)",
