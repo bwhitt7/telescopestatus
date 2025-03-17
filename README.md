@@ -1,6 +1,6 @@
 # Space Telescope Data
 
-WIP Python package to get JWST MAST data and analyze operational data.
+Python package that fetches MAST data for a given telescope (JWST, HST, or TESS) and generates graphs.
 
 ## To install
 1. `pip install -i https://test.pypi.org/pypi/ --extra-index-url https://pypi.org/simple telescopestatus`
