@@ -1,1 +1,3 @@
-from .data import TelescopeData
+from .src.data import (
+    TelescopeData
+)
