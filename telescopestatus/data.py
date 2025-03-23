@@ -3,69 +3,70 @@ from astropy.time import Time
 import astropy.units as u
 import pandas as pd
 import plotly.express as px
-from getpass import getpass
-    
+from datetime import datetime
+
+default_min_year = Time('1990-01-01')
+
 class TelescopeData:
     """
     Stores, generates, and visualizes MAST data for a given telescope (JWST, HST, or TESS).
     """
     
-    def __init__(self, telescope: str, token: str = None, max_data: int = None, start_time: Time = None, end_time: Time = None, data_file_path: str = None, data_file_type: str = None):
+    def __init__(self, telescope: str, start_time: Time = default_min_year, end_time: Time = Time.now(), max_data: int = None, token: str = None, data_file_path: str = None, data_file_type: str = None):
         """
         If no TelescopeData data file is given, it will automatically call fetch_telescope_data() with given parameters.
         telescope, max_data, start_time, and end_time become useless when data is given manually, but telescope, start_time, and end_time should be filled out for usage in the graphs.
         
         Args:
             telescope (str): The telescope to fetch data for. Should be a telescope in the MAST database (jwst, hst, tess)
-            token (str, optional): 
+            start_time (astropy.time.Time, optional): The start time of query. Defaults to 1990-01-01.
+            end_time (astropy.time.Time, optional): The end time of query. Defaults to the current time.
             max_data (int, optional): The maximum number of data entries you want to query for. Defaults to no limit.
-            start_time (astropy.time.Time, optional): The start time of query. Defaults to one year ago.
-            end_time (astropy.time.Time, optional): The end time of query. Defaults to today.
+            token (str, optional): MAST token. Defaults to None.
             data_file_path (str, optional): The location of a saved TelescopeData data file.
             data_file_type (str, optional): The file type of the TelescopeData data file. Should be a file type parsable by pandas (csv, json, pickles, etc)
         """
         self.telescope = None
-        self.start_time = None
-        self.end_time = None
+        self.start_time = default_min_year
+        self.end_time = Time.now()
         self.data = None
-        self.set_data(telescope, max_data, start_time, end_time, reset_dates=True, data_file_path=data_file_path, data_file_type=data_file_type)
+        self.set_data(telescope, start_time, end_time, max_data, token, data_file_path=data_file_path, data_file_type=data_file_type)
     
 
-    def set_data(self, telescope: str = None, token: str = None, max_data: int = None, start_time: Time = None, end_time: Time = None, reset_dates = False, clear_dates = False, data_file_path: str = None, data_file_type: str = None):
+    def set_data(self, telescope: str = None, start_time: Time = None, end_time: Time = None, max_data: int = None, token: str = None, data_file_path: str = None, data_file_type: str = None):
         """Setting the data for the class. This is called during initialization, but it can be called again to reset the data and requery if needed.
 
         Args:
             telescope (str, optional): The telescope to fetch data for. Should be a telescope in the MAST database (jwst, hst, tess). Defaults to None.
-            token (str, optional): 
-            max_data (int, optional): The maximum number of data entries you want to query for. Defaults to no limit.. Defaults to None.
             start_time (Time, optional): The start time of query. Defaults to None.
             end_time (Time, optional): The end time of query.. Defaults to None.
-            reset_dates (bool, optional): Reset the start and end times to default values (one year ago - today). Defaults to False.
-            clear_dates (bool, optional): If start and end dates are not needed (for example, if data was given manually instead of through a fetch), set this to True. Defaults to False.
+            max_data (int, optional): The maximum number of data entries you want to query for. Defaults to no limit.. Defaults to None.
+            token (str, optional): MAST token. Defaults to None.
             data_file_path (str, optional): The location of a saved TelescopeData data file.
             data_file_type (str, optional): The file type of the TelescopeData data file. Should be a file type parsable by pandas (csv, json, pickles, etc)
 
         Raises:
             ValueError: Invalid telescope name given.
         """
+        # if an invalid telescope name was given, raise an error
+        # must be in the astroquery observations list
         if telescope:
             self.telescope = telescope.upper()
             if not self.telescope in [t.upper() for t in Observations.list_missions()]:
                 raise ValueError(f"Invalid telescope/mission name given. Please use {", ".join(Observations.list_missions())}.")
         
-        if start_time: # if start time given
-            self.start_time = start_time
-        elif reset_dates: # if we don't already have some start time and we're not resetting the times
-            self.start_time = Time.now() - 1 *u.year
-            
-        if end_time: # if end time given
-            self.end_time = start_time
-        elif reset_dates: # if we don't already have some end time and we're not resetting the times
-            self.end_time = Time.now()
         
-        if clear_dates:
-            self.start_time = None
-            self.end_time = None
+        
+        start_time = self.validate_and_convert_time_param(start_time) if start_time else self.start_time
+        end_time = self.validate_and_convert_time_param(end_time) if end_time else self.end_time
+        
+        # if the start time is later than the end time, raise an error
+        if start_time and end_time:
+            if start_time > end_time:
+                raise ValueError(f"start_time should be less than end_time.")
+        
+        self.start_time = start_time
+        self.end_time = end_time
         
         self.data = pd.DataFrame()
         
@@ -80,19 +81,33 @@ class TelescopeData:
         # Otherwise, fetch data!
         else:
             try:
-                self.fetch_telescope_data(max_data)
+                self.fetch_telescope_data(max_data, token)
             except Exception as e:
                 print(e)
 
 
-    def fetch_telescope_data(self, token: str = None, max_data: int = None) -> pd.DataFrame:
+    def validate_and_convert_time_param(self, time) -> Time:
+        if isinstance(time,str) or isinstance(time,datetime):
+            if time == "now":
+                return Time.now()
+            try:
+                return Time(str)
+            except Exception:
+                raise ValueError(f"{time} -> Improper format for time.")
+        elif isinstance(time,Time):
+            return time
+        else:
+            raise ValueError(f"{time} -> Improper format for time.")
+
+
+    def fetch_telescope_data(self, max_data: int = None, token: str = None) -> pd.DataFrame:
         """
         Fetches MAST data for all observations made by the telescope in the past year.
         Uses the data parameters stored in the class. To change those values, call set_data() instead.
         
         Args:
-            token (str, optional): 
-            max_data (int, optional): The maximum number of data entries you want to query for. Defaults to no limit.
+            max_data (int, optional): The maximum number of data entries you want to query for. Defaults to None, for no limit.
+            token (str, optional): MAST token. Defaults to None.
         
         Returns:
             pd.DataFrame: The fetched MAST data in pandas format. Also stored in class' data variable.
@@ -122,7 +137,7 @@ class TelescopeData:
             return self.data
         
         except Exception as e:
-            # Currently get a lot of Memory Errors
+            # May get memory errors with low memory
             print("[ Error getting data ]")
             raise e
     
