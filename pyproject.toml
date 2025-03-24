@@ -24,6 +24,10 @@ build-backend = "poetry.core.masonry.api"
 optional = true
 
 [tool.poetry.group.test.dependencies]
-jupyterlab = "^4.3.5"
 pytest = "^8.3.5"
 
+[tool.poetry.group.jupyter]
+optional = true
+
+[tool.poetry.group.jupyter.dependencies]
+jupyterlab = "^4.3.5"
