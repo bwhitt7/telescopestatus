@@ -9,7 +9,8 @@ Python package that fetches MAST data for a given telescope (JWST, HST, or TESS)
 1. Clone repository.
 2. Install [poetry](https://python-poetry.org/).
 3. Run `poetry install` in root folder. This will install all needed packages, as well as telescopestatus locally.
-    - To install with Jupyter Lab and pytest, run `poetry install --with test`
+    - To install with pytest, run `poetry install --with test`
+    - To install with Jupyter Lab, run `poetry install --with jupyter`
 
 ## How to use
 ```python
