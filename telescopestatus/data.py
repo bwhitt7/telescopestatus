@@ -12,7 +12,7 @@ class TelescopeData:
     Stores, generates, and visualizes MAST data for a given telescope (JWST, HST, or TESS).
     """
     
-    def __init__(self, telescope: str, start_time: Time = default_min_year, end_time: Time = Time.now(), max_data: int = None, token: str = None, data_file_path: str = None, data_file_type: str = None):
+    def __init__(self, telescope: str, start_time: Time = default_min_year, end_time: Time = "now", max_data: int = None, token: str = None, data_file_path: str = None, data_file_type: str = None):
         """
         If no TelescopeData data file is given, it will automatically call fetch_telescope_data() with given parameters.
         telescope, max_data, start_time, and end_time become useless when data is given manually, but telescope, start_time, and end_time should be filled out for usage in the graphs.
@@ -55,8 +55,6 @@ class TelescopeData:
             if not self.telescope in [t.upper() for t in Observations.list_missions()]:
                 raise ValueError(f"Invalid telescope/mission name given. Please use {", ".join(Observations.list_missions())}.")
         
-        
-        
         start_time = self.validate_and_convert_time_param(start_time) if start_time else self.start_time
         end_time = self.validate_and_convert_time_param(end_time) if end_time else self.end_time
         
@@ -91,7 +89,7 @@ class TelescopeData:
             if time == "now":
                 return Time.now()
             try:
-                return Time(str)
+                return Time(time)
             except Exception:
                 raise ValueError(f"{time} -> Improper format for time.")
         elif isinstance(time,Time):
@@ -154,9 +152,20 @@ class TelescopeData:
         elif file_type == "pickle":
             data = pd.read_pickle(file_path)
         self.data = data
+        
+        
+    def chart(self, type, data_type, options={}):
+        if type=="pie":
+            if data_type=="instruments":
+                return self._pie_chart("instrument_name", "Instrument", f"Instrument Usage in {self.telescope.upper()} Observations", options)
+            elif data_type=="dataproducts":
+                return self._pie_chart("dataproduct_type", "Data Product Type", f"Data Product Type of {self.telescope.upper()} Observations", options)
+        elif type=="hist":
+            if data_type=="exptime":
+                return self._hist("t_exptime", "Exposure Length", f"Exposure Length of {self.telescope.upper()} Observations", options)
     
     
-    def _pie_chart(self, column:str, column_name:str, title:str):
+    def _pie_chart(self, column:str, column_name:str, title:str, options={}):
         counts = self.data[column].value_counts()
         df_result = pd.DataFrame(counts).reset_index() 
         start_time = self.start_time.to_value("iso", subfmt="date")
@@ -174,29 +183,8 @@ class TelescopeData:
         fig.update_layout(margin=dict(t=50, b=20, l=0, r=0))
         return fig
     
-    
-    def instruments_pie(self):
-        """
-        Prints a Plotly pie chart that displays the instrument usage in stored observations.
-
-        Returns:
-            Figure: Plotly figure.
-        """
-        return self._pie_chart("instrument_name", "Instrument", f"Instrument Usage in {self.telescope.upper()} Observations")
-
-
-    def data_type_pie(self):
-        """
-        Prints a Plotly pie chart that displays the type of observations.
-
-        Returns:
-            Figure: Plotly figure.
-        """
-        return self._pie_chart("dataproduct_type", "Data Product Type", f"Data Product Type of {self.telescope.upper()} Observations")
-
-
-    def exposure_length_hist(self, log_scale=False):
-        """Prints a Plotly histogram that displays the exposure length of stored observations.
+    def _hist(self,column: str, column_name: str, title:str, options={}):
+        """Prints a Plotly histogram.
 
         Args:
             log_scale (bool, optional): Display graph in log scale. Defaults to False.
@@ -206,16 +194,18 @@ class TelescopeData:
         """
         start_time = self.start_time.to_value("iso", subfmt="date")
         end_time = self.end_time.to_value("iso", subfmt="date")
-        
         fig = px.histogram(
             self.data,
-            x="t_exptime",
-            labels={"t_exptime": "Exposure Length"},
-            log_y=log_scale,
-            title=f"Exposure Length of Observations (between {start_time} and {end_time})"
+            x=column,
+            labels={column: column_name},
+            log_y=("log_scale" in options.keys() and options["log_scale"]) or False,
+            title=f"{title} (between {start_time} and {end_time})"
         )
         fig.update_layout(yaxis_title_text = '# of Observations')
         return fig
+    
+    
+    
 
     def compare_scatter(self, x:str, y:str):
         """Generate your own scatter by feeding in column names of MAST data. Must be numeric columns.

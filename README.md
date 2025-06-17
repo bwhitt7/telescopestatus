@@ -21,6 +21,6 @@ import telescopestatus as ts
 jwst_data = ts.TelescopeData("jwst", start_time="2025-01-01", end_time="now")
 
 # generates a plotly pie chart that displays how frequently instruments are used.
-jwst_data.pie_instruments() 
+jwst_data.chart("pie","instruments")
 
 ```
