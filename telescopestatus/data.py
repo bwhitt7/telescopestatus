@@ -21,7 +21,7 @@ class TelescopeData:
             telescope (str): The telescope to fetch data for. Should be a telescope in the MAST database (jwst, hst, tess)
             start_time (astropy.time.Time, optional): The start time of query. Defaults to 1990-01-01.
             end_time (astropy.time.Time, optional): The end time of query. Defaults to the current time.
-            max_data (int, optional): The maximum number of data entries you want to query for. Defaults to no limit.
+            max_data (int, optional): The maximum number of data entries you want to return. Defaults to no limit.
             token (str, optional): MAST token. Defaults to None.
             data_file_path (str, optional): The location of a saved TelescopeData data file.
             data_file_type (str, optional): The file type of the TelescopeData data file. Should be a file type parsable by pandas (csv, json, pickles, etc)
@@ -30,6 +30,7 @@ class TelescopeData:
         self.start_time = default_min_year # start and end time should *always* be set during initialization, and never set to none.
         self.end_time = Time.now()
         self.data = None
+        self.max_data = None
         self.set_data(telescope, start_time, end_time, max_data, token, data_file_path=data_file_path, data_file_type=data_file_type)
     
 
@@ -87,7 +88,7 @@ class TelescopeData:
 
 
     def validate_and_convert_time_param(self, time) -> Time:
-        """Make sure the given time value is convertible to astro.time.Time, and do so if possible.
+        """Make sure the given time value is convertible to astro.time.Time, and convert if possible.
 
         Args:
             time (any): Value representing time, which will be converted to astro.time.Time if possible. Should be a string in a proper Time format (such as iso), datetime, or Time.
@@ -102,10 +103,10 @@ class TelescopeData:
             if isinstance(time,str) and time == "now":
                 return Time.now() # quickly return the current time without needing to use Time.now()
             try:
-                return Time(time)
+                return Time(time) #properly formatted str and datetime can both feed into Time
             except Exception:
                 raise ValueError(f"{time} -> Improper format for time.")
-        elif isinstance(time,Time):
+        elif isinstance(time,Time): # if fed Time, return Time
             return time
         else:
             raise ValueError(f"{time} -> Improper format for time (not str, datetime, or Time).")
@@ -113,11 +114,11 @@ class TelescopeData:
 
     def fetch_telescope_data(self, max_data: int = None, token: str = None) -> pd.DataFrame:
         """
-        Fetches MAST data for all observations made by the telescope in the past year.
-        Uses the data parameters stored in the class. To change those values, call set_data() instead.
+        Fetches MAST data for all observations made by the telescope, limited by the start and end times given to TelescopeData.
+        Uses the data parameters stored in the class. To change those values, call set_data().
         
         Args:
-            max_data (int, optional): The maximum number of data entries you want to query for. Defaults to None, for no limit.
+            max_data (int, optional): The maximum number of data entries you want to query for. If given, overrides max_data given to TelescopeData.
             token (str, optional): MAST token. Defaults to None.
         
         Returns:
@@ -134,6 +135,10 @@ class TelescopeData:
         
         # Connect to MAST through astroquery and load data.
         print(f"[ Loading {self.telescope} data from MAST... ]")
+        m = self.max_data
+        if max_data:
+            m = max_data
+
         try:
             obs = Observations.query_criteria(
                 obs_collection=[self.telescope], # search collection for telescope
